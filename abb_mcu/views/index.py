@@ -19,6 +19,13 @@ def _corsify_actual_response(response):
     return response
 
 
+@abb_mcu.app.route('/monitor', methods=['GET'])
+def handle_monitor():
+    # TODO Return Real Monitor Data here
+    monito_data = {'data1': 1, 'data2': 2}
+    return _corsify_actual_response(flask.jsonify(monito_data))
+
+
 @abb_mcu.app.route('/toggle', methods=['POST'])
 def handle_toggle():
     req_dict_str = request.data.decode("UTF-8")
