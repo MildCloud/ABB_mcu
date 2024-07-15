@@ -46,9 +46,13 @@ def handle_toggle():
 
 # Power Monitor
 # Configure the serial connection
+EN_485 = 4
+GPIO.setup(EN_485, GPIO.OUT)
+GPIO.output(EN_485, GPIO.LOW)
+
 client = ModbusClient(
     method='rtu',
-    port='/dev/ttyUSB0',  # Adjust the port name as necessary
+    port='/dev/ttyAMA0',  # Adjust the port name as necessary
     baudrate=9600,
     timeout=1,
     stopbits=1,
