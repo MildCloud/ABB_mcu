@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 import ast
 import json
+import struct
 
 import flask
 import abb_mcu
@@ -13,6 +14,8 @@ import RPi.GPIO as GPIO
 import serial
 import time
 
+from pymodbus.client.sync import ModbusSerialClient as ModbusClient
+import pymodbus.constants as cst
 
 # 初始化CORS
 CORS(abb_mcu.app, resources={r"/*": {"origins": "*"}})
@@ -43,8 +46,38 @@ def handle_toggle():
     return _corsify_actual_response(flask.jsonify({}))
 
 # Power Monitor
-# Initialize serial communication for power meter
-ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  # Adjust the serial port and baud rate as needed
+# Configure the serial connection
+client = ModbusClient(
+    method='rtu',
+    port='/dev/ttyUSB0',  # Adjust the port name as necessary
+    baudrate=9600,
+    timeout=1,
+    stopbits=1,
+    bytesize=8,
+    parity='N'
+)
+
+# Connect to the client
+connection = client.connect()
+if not connection:
+    print("Failed to connect to the serial port")
+    exit()
+
+# Read the values from the specified registers
+start_address = 0x0E
+number_of_registers = 6
+unit_id = 1  # Slave address
+
+read_values = client.read_holding_registers(start_address, number_of_registers, unit=unit_id)
+
+# Check if the read was successful and print the values
+if not read_values.isError():
+    print("Read values:", read_values.registers)
+else:
+    print("Error reading values")
+
+# Close the connection
+client.close()
 
 @abb_mcu.app.route('/monitor', methods=['GET'])
 def handle_monitor():
