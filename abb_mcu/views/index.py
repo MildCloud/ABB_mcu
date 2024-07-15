@@ -6,9 +6,8 @@ import ast
 import json
 import struct
 
-import flask
-import abb_mcu
-current_app = abb_mcu.app
+# Use relative import
+from .. import app as current_app
 
 import RPi.GPIO as GPIO
 import serial
