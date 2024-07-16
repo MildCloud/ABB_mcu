@@ -1,46 +1,48 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, json
 from flask_cors import CORS
-import RPi.GPIO as GPIO
+from werkzeug.utils import secure_filename
+import os
+import ast
 import json
-import time
 import struct
+
+# Use relative import
+from .. import app as current_app
+
+import RPi.GPIO as GPIO
+import serial
+import time
+
 from pymodbus.client.sync import ModbusSerialClient as ModbusClient
 import pymodbus.constants as cst
 
-from .. import app as current_app
+# Initialize CORS
+CORS(abb_mcu.app, resources={r"/*": {"origins": "*"}}) # allow everyone (frontend) to access everything (backend)
 
-# Initialize CORS with specific configurations
-CORS(current_app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, allow_headers=["Content-Type", "Access-Control-Allow-Headers", "Authorization", "X-Requested-With"])
 
 def _corsify_actual_response(response):
     response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     return response
 
 # Set up GPIO
-SSR_PIN = 17
+SSR_PIN = 17  # Example GPIO pin number, adjust as needed
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(SSR_PIN, GPIO.OUT)
 
-@current_app.route('/toggle', methods=['POST', 'OPTIONS'])
+# SSR
+@abb_mcu.app.route('/toggle', methods=['POST'])
 def handle_toggle():
-    if request.method == 'OPTIONS':
-        return _corsify_actual_response(jsonify({}))
-
     req_dict_str = request.data.decode("UTF-8")
     req_dict = json.loads(req_dict_str)
     print('toggle require', req_dict['require'])
-
+    
+    # Toggle the SSR based on the request
     if req_dict['require'] == 'on':
         GPIO.output(SSR_PIN, GPIO.HIGH)
     elif req_dict['require'] == 'off':
         GPIO.output(SSR_PIN, GPIO.LOW)
-
-    return _corsify_actual_response(jsonify({}))
-
-# Add similar CORS handling for other endpoints as needed
-
+    
+    return _corsify_actual_response(flask.jsonify({}))
 
 # Power Monitor
 # Configure the serial connection
