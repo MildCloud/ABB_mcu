@@ -17,7 +17,7 @@ from pymodbus.client.sync import ModbusSerialClient as ModbusClient
 import pymodbus.constants as cst
 
 # 初始化CORS
-CORS(abb_mcu.app, resources={r"/*": {"origins": "*"}})
+CORS(current_app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type"])
 
 
 def _corsify_actual_response(response):
