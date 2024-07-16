@@ -1,0 +1,83 @@
+import serial
+import modbus_tk.modbus_rtu as rtu
+import modbus_tk.defines as cst
+import RPi.GPIO as GPIO
+import struct
+import time
+
+# Initialize GPIO
+SSR_PIN = 17  # Change this to the pin you are using
+EN_485 = 4
+GPIO.setmode(GPIO.BCM)  # Set the pin numbering system to BCM
+GPIO.setup(SSR_PIN, GPIO.OUT)  # Set the SSR pin as an output
+GPIO.setup(EN_485, GPIO.OUT)  # Set the EN_485 pin as an output
+GPIO.output(EN_485, GPIO.LOW)  # Set EN_485 pin to low
+
+# Initialize Serial and Modbus
+ser = serial.Serial(port='/dev/ttyAMA0', baudrate=9600, parity="N")
+if ser.isOpen():
+    print("Serial Opened")
+
+master = rtu.RtuMaster(ser)
+master.set_timeout(1.0)
+master.set_verbose(True)
+
+# Modbus register addresses
+v_address = 0x0000
+i_address = 0x0002
+p_address = 0x0004
+f_num_registers = 2
+
+def convert_to_float(high, low):
+    combined = (high << 16) + low
+    float_value = struct.unpack('>f', struct.pack('>I', combined))[0]
+    return float_value
+
+def read_power_data():
+    try:
+        read_values_v = master.execute(195, cst.HOLDING_REGISTERS, v_address, f_num_registers)
+        read_values_i = master.execute(195, cst.HOLDING_REGISTERS, i_address, f_num_registers)
+        read_values_p = master.execute(195, cst.HOLDING_REGISTERS, p_address, f_num_registers)
+
+        voltage = convert_to_float(read_values_v[0], read_values_v[1])
+        current = convert_to_float(read_values_i[0], read_values_i[1])
+        power = convert_to_float(read_values_p[0], read_values_p[1])
+
+        return voltage, current, power
+    except Exception as e:
+        print(f"Error reading power data: {e}")
+        return None, None, None
+
+try:
+    while True:
+        user_input = input("Enter 'on' to turn SSR on, 'off' to turn SSR off, 'exit' to quit: ").strip().lower()
+
+        if user_input == 'on':
+            GPIO.output(SSR_PIN, GPIO.HIGH)
+            print("SSR ON")
+            while True:
+                voltage, current, power = read_power_data()
+                if voltage is not None and current is not None and power is not None:
+                    print(f"Voltage: {voltage:.2f} V, Current: {current:.2f} A, Power: {power:.2f} W")
+                else:
+                    print("Failed to read power data.")
+                time.sleep(1)
+                # Check for user input to turn off or exit
+                if input("Enter 'off' to turn SSR off, 'exit' to quit: ").strip().lower() in ['off', 'exit']:
+                    break
+
+        elif user_input == 'off':
+            GPIO.output(SSR_PIN, GPIO.LOW)
+            print("SSR OFF")
+
+        elif user_input == 'exit':
+            break
+
+        else:
+            print("Invalid input. Please enter 'on', 'off', or 'exit'.")
+
+except KeyboardInterrupt:
+    pass
+finally:
+    GPIO.cleanup()
+    print("Exiting and cleaning up GPIO")
