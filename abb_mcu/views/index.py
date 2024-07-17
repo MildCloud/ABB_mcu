@@ -11,6 +11,11 @@ import flask
 import abb_mcu
 current_app = abb_mcu.app
 
+# SSR
+# Set up GPIO
+SSR_PIN = 17
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(SSR_PIN, GPIO.OUT)
 
 # 初始化CORS
 CORS(abb_mcu.app, resources={r"/*": {"origins": "*"}})
@@ -28,11 +33,6 @@ def handle_monitor():
     monito_data = {'data1': 1, 'data2': 2}
     return _corsify_actual_response(flask.jsonify(monito_data))
 
-# SSR
-# Set up GPIO
-SSR_PIN = 17
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(SSR_PIN, GPIO.OUT)
 
 @abb_mcu.app.route('/toggle', methods=['POST'])
 def handle_toggle():

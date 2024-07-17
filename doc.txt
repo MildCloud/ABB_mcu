@@ -1,2 +1,4 @@
 source env/bin/activate
 flask --app abb_mcu --debug run --host 0.0.0.0 --port 8080
+# we should use sudo and disable debug to run gpio
+sudo flask --app abb_mcu run --host 0.0.0.0 --port 8080
