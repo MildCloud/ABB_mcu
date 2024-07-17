@@ -2,3 +2,6 @@ env/
 .vscode/
 *.egg-info/
 __pycache__/
+test1.py
+master.zip
+lg-master/
